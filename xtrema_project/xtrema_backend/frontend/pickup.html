@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Xtrema | Pickup</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+    <nav class="navbar">
+        <div class="nav-brand">
+            <img src="assets/xtrema-logo.png" onerror="this.style.display='none'" class="nav-logo-img" alt="Xtrema">
+            <span>Xtrema</span>
+        </div>
+        <div class="nav-links">
+            <a href="upload.html">Home</a>
+            <a href="profile.html">Profile</a>
+            <a href="points.html">Points</a>
+            <a href="#">Learn more</a>
+        </div>
+        <div class="nav-profile-circle" onclick="window.location.href='profile.html'">
+            <i class="fas fa-user"></i>
+        </div>
+    </nav>
+
+    <div class="pickup-wrapper">
+        <h2 class="pickup-title">Pickup Details</h2>
+
+        <div class="pickup-form-grid">
+            <input class="form-input" id="address" placeholder="Address" required>
+            <input class="form-input" id="pincode" placeholder="Pincode" required>
+
+            <input class="form-input" id="state" placeholder="State" required>
+            <input class="form-input" id="landmark" placeholder="Landmark" required>
+
+            <input class="form-input" type="date" id="date" required>
+            <input class="form-input" id="garbageType" placeholder="Garbage type" required>
+        </div>
+
+        <button class="btn-green btn-scheduled" id="scheduleBtn">Scheduled Pick up</button>
+    </div>
+
+    <div id="successModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()" style="float:right; cursor:pointer;">&times;</span>
+            <h2 style="color: var(--primary-green);">Success!</h2>
+            <p>Pick Up Scheduled Successfully</p>
+            <button class="btn-green" onclick="window.location.href='profile.html'">OK</button>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script>
+        // Override scheduleBtn click handler
+        const API_URL = "http://127.0.0.1:8000/api";
+
+        document.getElementById('scheduleBtn').addEventListener('click', function(e) {
+            e.preventDefault();
+
+            const address = document.getElementById("address").value;
+            const pincode = document.getElementById("pincode").value;
+            const state = document.getElementById("state").value;
+            const landmark = document.getElementById("landmark").value;
+            const pickup_date = document.getElementById("date").value;
+            const garbageType = document.getElementById("garbageType").value;
+
+            if (!address || !pincode || !state || !landmark || !pickup_date || !garbageType) {
+                alert("Please fill all fields");
+                return;
+            }
+
+            const data = {
+                address: address,
+                pincode: pincode,
+                state: state,
+                landmark: landmark,
+                pickup_date: pickup_date,
+                plastic_kg: 3,
+                metal_kg: 1,
+                glass_kg: 0.5,
+                wood_kg: 0.2,
+                trash_kg: 0.3
+            };
+
+            fetch(API_URL + "/pickup/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(res => res.json())
+                .then(response => {
+                    console.log("Pickup response:", response);
+                    if (response.status === "success") {
+                        localStorage.setItem("points", response.points || 0);
+
+                        // Store waste data for profile
+                        const wasteData = {
+                            plastic_kg: data.plastic_kg,
+                            metal_kg: data.metal_kg,
+                            glass_kg: data.glass_kg,
+                            wood_kg: data.wood_kg,
+                            trash_kg: data.trash_kg,
+                            total_kg: data.plastic_kg + data.metal_kg + data.glass_kg + data.wood_kg + data.trash_kg
+                        };
+
+                        // Get existing pickups or create new array
+                        let pickups = JSON.parse(localStorage.getItem("pickups")) || [];
+                        pickups.push(wasteData);
+                        localStorage.setItem("pickups", JSON.stringify(pickups));
+
+                        // Show modal
+                        const modal = document.getElementById('successModal');
+                        if (modal) {
+                            modal.style.display = 'block';
+                        }
+                    } else {
+                        alert("Pickup booking failed: " + JSON.stringify(response));
+                    }
+                })
+                .catch(err => {
+                    console.error("Pickup error:", err);
+                    alert("Pickup booking error: " + err);
+                });
+        });
+    </script>
+</body>
+
+</html>
